@@ -17,23 +17,34 @@ import { styled } from "@mui/material/styles";
 import Loader from "./Loader";
 import PlaceBet from "./PlaceBet";
 import ConfettiExplosion from "react-confetti-explosion";
+import { IUser } from "../types/User";
 
-export default function EventsTable() {
+export default function EventsTable({ user }: { user: IUser | null }) {
   const [data, setData] = React.useState([] as ISportEvents[]);
   const [loading, setLoading] = React.useState(true);
   const [isExploding, setIsExploding] = React.useState(false);
 
   React.useEffect(() => {
-    getData();
+    if (user) {
+      getData();
+    }
   }, []);
 
   const getData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${apiConfig.base_url}/events`);
-      const events = await response.json();
-      console.log("response", events);
-      setData(events as unknown as ISportEvents[]);
+      const response = await fetch(`${apiConfig.base_url}/events`, {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${user?.token}`,
+        },
+      });
+      if (response.status === 200 || response.status === 201) {
+        const events = await response.json();
+        setData(events as unknown as ISportEvents[]);
+      } else {
+        throw new Error(response.statusText);
+      }
     } catch (err) {
       toast.error("Error getting sport events!");
     } finally {
@@ -84,7 +95,7 @@ export default function EventsTable() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {data.map((row) => (
+              {(data || []).map((row) => (
                 <StyledTableRow key={row.event_id}>
                   <StyledTableCell component="th" scope="row">
                     {row.event_id}
